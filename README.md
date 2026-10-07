@@ -10,7 +10,7 @@ The fixture intentionally stays small:
 - Express backend
 - Real HTTP communication from the frontend to the backend
 
-It does not use a database, real authentication/session middleware, Docker, SSR, or a monorepo framework.
+It does not use real authentication/session middleware, Docker, SSR, or a monorepo framework.
 
 Historical pinned commits (including the M9 golden-path pin) remain
 unchanged and do not declare any secret requirement. As of the M10
@@ -25,6 +25,15 @@ its own stdout behind a fixed `PEEPHOLE_M10_SECRET_LOG_PROBE:` prefix; this is
 intentional, hostile-by-design fixture behavior used solely to verify that
 Peephole's production log pipeline does not forward a sandboxed backend's
 stdout into its own systemd journal, not a vulnerability in this fixture.
+
+Historical M9 and M10 commits remain immutable. The M11 temporary-database
+fixture commit adds exactly the `pg` dependency and the `DATABASE_URL`
+requirement. `DATABASE_URL` must be injected by Peephole; there is no fallback
+database. At startup, the backend uses one PostgreSQL client to perform a
+bounded, fixed `CREATE TABLE IF NOT EXISTS` action followed by `SELECT 1`, then
+closes the client. `GET /api/db-check` reports only a fixed, non-secret success
+or failure state. It never exposes the database URL, hostname, port, or
+credentials.
 
 ## Local Verification
 
@@ -55,3 +64,4 @@ Backend endpoints:
 - `GET /health`
 - `GET /api/hello`
 - `GET /api/secret-check`
+- `GET /api/db-check`
