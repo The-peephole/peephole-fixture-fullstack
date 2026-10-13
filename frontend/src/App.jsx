@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 
 export default function App() {
-  const [state, setState] = useState({
+  const [helloState, setHelloState] = useState({
     status: 'loading',
     message: 'Loading backend response...',
   });
+  const [configState, setConfigState] = useState({ status: 'loading' });
 
   useEffect(() => {
     let cancelled = false;
@@ -24,11 +25,11 @@ export default function App() {
         }
 
         if (!cancelled) {
-          setState({ status: 'success', message: data.message });
+          setHelloState({ status: 'success', message: data.message });
         }
       } catch (error) {
         if (!cancelled) {
-          setState({
+          setHelloState({
             status: 'error',
             message: `Failed to load backend response: ${error.message}`,
           });
@@ -37,6 +38,48 @@ export default function App() {
     }
 
     loadMessage();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadConfig() {
+      try {
+        const response = await fetch('/api/config-check');
+
+        if (!response.ok) {
+          throw new Error(`Backend returned HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (typeof data.configured !== 'boolean') {
+          throw new Error('Backend response did not include configured status');
+        }
+
+        if (data.configured && typeof data.value !== 'string') {
+          throw new Error('Backend response did not include APP_GREETING');
+        }
+
+        if (!cancelled) {
+          setConfigState(
+            data.configured
+              ? { status: 'configured', value: data.value }
+              : { status: 'missing' },
+          );
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setConfigState({ status: 'error', message: error.message });
+        }
+      }
+    }
+
+    loadConfig();
 
     return () => {
       cancelled = true;
@@ -71,21 +114,52 @@ export default function App() {
         <p
           style={{
             margin: '0 0 8px',
-            color: state.status === 'error' ? '#b42318' : '#2563eb',
+            color: helloState.status === 'error' ? '#b42318' : '#2563eb',
             fontSize: '0.78rem',
             fontWeight: 700,
             letterSpacing: '0.08em',
             textTransform: 'uppercase',
           }}
         >
-          {state.status}
+          {helloState.status}
         </p>
         <h1 style={{ margin: 0, fontSize: '2rem', lineHeight: 1.15 }}>
           Full-stack preview fixture
         </h1>
         <p style={{ margin: '16px 0 0', fontSize: '1.1rem', lineHeight: 1.6 }}>
-          {state.message}
+          {helloState.message}
         </p>
+        <div
+          style={{
+            marginTop: '24px',
+            borderTop: '1px solid #d9e2ec',
+            paddingTop: '20px',
+          }}
+        >
+          <p
+            style={{
+              margin: 0,
+              color: configState.status === 'error' ? '#b42318' : '#2563eb',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+            }}
+          >
+            APP_GREETING · {configState.status}
+          </p>
+          <p style={{ margin: '10px 0 0', fontSize: '1rem', lineHeight: 1.6 }}>
+            {configState.status === 'loading' && '환경변수 확인 중'}
+            {configState.status === 'configured' && (
+              <>
+                APP_GREETING: <strong>{configState.value}</strong>
+              </>
+            )}
+            {configState.status === 'missing' && '환경변수가 전달되지 않음'}
+            {configState.status === 'error' &&
+              `환경변수 확인 요청 실패: ${configState.message}`}
+          </p>
+        </div>
       </section>
     </main>
   );
