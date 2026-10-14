@@ -57,6 +57,18 @@ app.get('/api/hello', (request, response) => {
   });
 });
 
+// M12 user-environment fixture: APP_GREETING is intentionally public test
+// data. Do not use this variable for secrets, passwords, API keys, or tokens.
+app.get('/api/config-check', (request, response) => {
+  const value = process.env.APP_GREETING;
+  if (typeof value !== 'string' || value.length === 0) {
+    response.json({ configured: false });
+    return;
+  }
+
+  response.json({ configured: true, value });
+});
+
 app.get('/api/db-check', (request, response) => {
   response.json(databaseState);
 });
